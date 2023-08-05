@@ -121,12 +121,13 @@ class wall {
 }
 
 class bullet {
-  constructor(x, y, life, xInc, yInc) {
+  constructor(x, y, life, xInc, yInc, isMyBullet) {
     this.x = x;
     this.y = y;
     this.life = life;
     this.xInc = xInc;
     this.yInc = yInc;
+    this.isMyBullet = isMyBullet;
     this.checkBoundsBullet = function(){
       for (let i = 0; i < walls.length; i++){
         if (this.x + bulletSize/2 >= walls[i].x &&
@@ -333,7 +334,7 @@ function updateOpponentPlayer(player2x, player2y, player2degree){
 }
 
 function addOpponentBullet(x, y, life, xInc, yInc){
-  bullets.push(new bullet(x * w, y * h, life, xInc * w, yInc * h));
+  bullets.push(new bullet(x * w, y * h, life, xInc * w, yInc * h, false));
 }
 
 
@@ -356,7 +357,8 @@ function keyPressed(){
       player1.y + sin(player1.degree) * tankSize * (3/4),
       1000, 
       cos(player1.degree) * bulletSpeed,
-      sin(player1.degree) * bulletSpeed));
+      sin(player1.degree) * bulletSpeed,
+      true));
       
       sendNewBulletToOpponent(player1.x + cos(player1.degree) * tankSize * (3/4),
       player1.y + sin(player1.degree) * tankSize * (3/4),
@@ -392,8 +394,10 @@ function drawBullets(){
   for (let i = 0; i < bullets.length; i++){
     bullets[i].life--;
       if (bullets[i].life <= 0){
+        if (bullets[i].isMyBullet){
+          myBullets--;
+        }
         bullets.splice(i,1);
-        myBullets--;
         break;
     }
   }
