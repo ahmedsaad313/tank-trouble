@@ -102,11 +102,20 @@ class tank {
       }
       sendUpdatedPlayerInfo(this.x, this.y, this.degree);
     }
-    this.drawHearts = function(){
-      for (let i = 1; i <= this.life; i++){
-        fill("red");
-        heart(w - 65/mww * w *i, h/40, h/40);
-      }
+  }
+}
+
+function drawHearts(isMyTank, tank){
+  if (isMyTank){
+    for (let i = 1; i <= tank.life; i++){
+      fill("red");
+      heart(w - 65/mww * w *i, h/40, h/40);
+    }
+  }
+  else{
+    for (let i = 1; i <= tank.life; i++){
+      fill("green");
+      heart(65/mww * w *i, h/40, h/40);
     }
   }
 }
@@ -121,13 +130,14 @@ class wall {
 }
 
 class bullet {
-  constructor(x, y, life, xInc, yInc, isMyBullet) {
+  constructor(x, y, life, xInc, yInc ,isMyBullet, timestamp) {
     this.x = x;
     this.y = y;
     this.life = life;
     this.xInc = xInc;
     this.yInc = yInc;
     this.isMyBullet = isMyBullet;
+    this.timestamp = timestamp;
     this.checkBoundsBullet = function(){
       for (let i = 0; i < walls.length; i++){
         if (this.x + bulletSize/2 >= walls[i].x &&
@@ -197,12 +207,19 @@ class bullet {
         }
       }
     }
-    this.checkBulletTankCollision = function(j){
+    this.checkBulletTankCollision = function(bullPos){
       if (dist(this.x, this.y, player1.x, player1.y) <= (bulletSize + tankSize)/2){
-        bullets.splice(j,1);
-        myBullets--;
-        j--;
+        if (bullets[bullPos].isMyBullet){
+          myBullets--;
+        }
+        bullets.splice(bullPos,1);
+        deleteBullet(bullPos);
+        bullPos--;
         player1.life--;
+        updateLife(player1.life);
+        if (player1.life == 0){
+          alert("You lost, you loser, HAHAHAHAHAHA!")
+        }
       }
     }
     this.check = function(){
@@ -302,10 +319,10 @@ function drawTanks(){
   player1.determineDegree();
   strokeWeight(0);
   fill('black');
- // drawHearts();
+  drawHearts(true, player1);
+  drawHearts(false, player2);
   player1.moveTanks();
   player1.checkBoundsTank();
-  player1.drawHearts();
   fill('black');
   //draw tank1 body
   ellipse(player1.x, player1.y, tankSize);
@@ -334,7 +351,18 @@ function updateOpponentPlayer(player2x, player2y, player2degree){
 }
 
 function addOpponentBullet(x, y, life, xInc, yInc){
-  bullets.push(new bullet(x * w, y * h, life, xInc * w, yInc * h, false));
+  bullets.push(new bullet(x * w, y * h, life, xInc * w, yInc * h, false, new Date()));
+}
+
+function deleteBulletHitWithOpponent(j){
+  bullets.splice(j,1);
+}
+
+function updateOpponetHearts(hearts){
+  player2.life = hearts;
+  if (player2.life == 0){
+    alert("You won, thats crazy, you're HIM!")
+  }
 }
 
 
@@ -350,33 +378,54 @@ function heart(x, y, size) {
 
  
 function keyPressed(){
-  if (keyCode == 32){
-    if (myBullets < 10){
-      
-      bullets.push(new bullet(player1.x + cos(player1.degree) * tankSize * (3/4),
-      player1.y + sin(player1.degree) * tankSize * (3/4),
-      1000, 
-      cos(player1.degree) * bulletSpeed,
-      sin(player1.degree) * bulletSpeed,
-      true));
-      
-      sendNewBulletToOpponent(player1.x + cos(player1.degree) * tankSize * (3/4),
-      player1.y + sin(player1.degree) * tankSize * (3/4),
-      1000, 
-      cos(player1.degree) * (bulletSpeed / w),
-      sin(player1.degree) * (bulletSpeed / h));
-      myBullets++;
+  if (keyCode == 32 && myBullets < 10){
+    
+    //making bullet
+    let bulletDate = new Date();
+    let currBullet = new bullet(player1.x + cos(player1.degree) * tankSize * (3/4),
+    player1.y + sin(player1.degree) * tankSize * (3/4),
+    1000, 
+    cos(player1.degree) * bulletSpeed,
+    sin(player1.degree) * bulletSpeed,
+    true,
+    bulletDate);
 
-      for(let i = 0; i < walls.length; i++){ 
-        if (bullets[bullets.length-1].x + 10/mww * w >= walls[i].x &&
-          bullets[bullets.length-1].x - 10/mww * w <= walls[i].x + walls[i].w &&
-          bullets[bullets.length-1].y + 10/mwh * h >= walls[i].y &&
-          bullets[bullets.length-1].y - 10/mwh * h <= walls[i].y + walls[i].h){
-          bullets.pop();
-          myBullets--;
+    //pushing the bullet to bullets array by timestamp
+    if (bullets.length == 0){
+      bullets.push(currBullet);
+    }
+    else{
+      for (let i = 0; i < bullets.length; i++){
+        if (currBullet.timestamp < bullets[i].timestamp){
+          bullets.splice(i, 0, currBullet);
+        }
+        else if (currBullet.timestamp > bullets[i].timestamp){
+          if (i == bullets.length - 1){
+            bullets.push(currBullet);
           }
+        }
       }
     }
+
+    myBullets++;
+    console.log(bullets);
+
+    for(let i = 0; i < walls.length; i++){ 
+      if (bullets[bullets.length-1].x + 10/mww * w >= walls[i].x &&
+        bullets[bullets.length-1].x - 10/mww * w <= walls[i].x + walls[i].w &&
+        bullets[bullets.length-1].y + 10/mwh * h >= walls[i].y &&
+        bullets[bullets.length-1].y - 10/mwh * h <= walls[i].y + walls[i].h){
+        bullets.pop();
+        myBullets--;
+        return;
+      }
+    }
+    
+    sendNewBulletToOpponent(player1.x + cos(player1.degree) * tankSize * (3/4),
+    player1.y + sin(player1.degree) * tankSize * (3/4),
+    1000, 
+    cos(player1.degree) * (bulletSpeed / w),
+    sin(player1.degree) * (bulletSpeed / h));
   }
 }
 

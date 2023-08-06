@@ -20,9 +20,25 @@ socket.on('send-opponent-update', (x, y, degree) => {
 })
 
 function sendNewBulletToOpponent(x, y, life, xInc, yInc){
-    socket.emit("bullet-update", (x/w), (y/h), life, xInc, yInc);
+    socket.emit("new-bullet-update", (x/w), (y/h), life, xInc, yInc);
 }
 
-socket.on('send-bullet-update', (x, y, life, xInc, yInc) => {
+socket.on('send-new-bullet-update', (x, y, life, xInc, yInc) => {
     addOpponentBullet(x, y, life, xInc, yInc);
+})
+
+function deleteBullet(bullPos){
+    socket.emit('delete-bullet-update', bullPos);
+} 
+
+socket.on('send-delete-bullet-update', (bullPos) => {
+    deleteBulletHitWithOpponent(bullPos);
+});
+
+function updateLife(hearts){
+    socket.emit('new-hearts-update', hearts);
+}
+
+socket.on('send-new-hearts-update', (hearts) => {
+    updateOpponetHearts(hearts);
 })
